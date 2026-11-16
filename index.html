@@ -192,7 +192,7 @@
                         </div>
                         <div>
                             <label for="evalPeriod" class="block text-xs font-semibold text-slate-600 mb-1.5">Periode Penilaian</label>
-                            <input type="month" id="evalPeriod" onchange="loadAgentSavedEvaluation()"
+                            <input type="month" id="evalPeriod" min="2026-10" max="2026-12" onchange="refreshSheetData()"
                                 class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
                         </div>
                         <div class="sm:col-span-2 flex flex-wrap items-center justify-between gap-2">
@@ -414,9 +414,11 @@
         // Konstanta keliling lingkaran SVG untuk progress ring (2 * PI * 58)
         const RING_CIRCUMFERENCE = 2 * Math.PI * 58;
         const GOOGLE_SHEET_ID = '1-NvT0X7PCc-sX4vEtnlrDqh-YyhzZfV3Ou98KypXYMw';
-        const GOOGLE_SHEET_GID = '0';
-        const GOOGLE_SHEET_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/edit?gid=${GOOGLE_SHEET_GID}#gid=${GOOGLE_SHEET_GID}`;
-        const GOOGLE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=csv&gid=${GOOGLE_SHEET_GID}`;
+        const GOOGLE_SHEET_GIDS_BY_PERIOD = {
+            '2026-10': '1753114404',
+            '2026-11': '0',
+            '2026-12': '246638141'
+        };
         let sheetEvaluations = [];
 
         /**
@@ -751,42 +753,58 @@
             return rows.slice(headerIndex + 1)
                 .map((cells) => {
                     const name = (cells[nameIndex] || '').replace(/\s+/g, ' ').trim();
-                    const scores = scoreIndexes.map((index) => Number((cells[index] || '').trim()));
+                    const rawScores = scoreIndexes.map((index) => (cells[index] || '').trim());
+                    const scores = rawScores.map((score) => score === '' ? null : Number(score));
                     return { name, scores };
                 })
                 .filter((record) => record.name && record.scores.every((score) =>
-                    Number.isFinite(score) && score >= 0 && score <= 10
+                    score === null || (Number.isFinite(score) && score >= 0 && score <= 10)
                 ));
         }
 
         async function refreshSheetData() {
             const status = document.getElementById('sheet-sync-status');
             const button = document.getElementById('refresh-sheet-button');
+            const period = document.getElementById('evalPeriod').value;
+            const sheetGid = GOOGLE_SHEET_GIDS_BY_PERIOD[period];
+            sheetEvaluations = [];
+            clearKpiScores();
+
+            if (!sheetGid) {
+                status.textContent = 'Data Google Sheets hanya tersedia untuk Oktober–Desember 2026.';
+                status.className = 'text-xs text-rose-700';
+                return;
+            }
+
             button.disabled = true;
             button.classList.add('opacity-60', 'cursor-wait');
-            status.textContent = 'Mengambil data P1–P6 dari Google Sheets...';
+            status.textContent = `Mengambil data ${formatEvalPeriod(period)} dari Google Sheets...`;
             status.className = 'text-xs text-slate-500';
 
             try {
-                const response = await fetch(GOOGLE_SHEET_CSV_URL, { cache: 'no-store' });
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=csv&gid=${sheetGid}`;
+                const response = await fetch(csvUrl, { cache: 'no-store' });
                 if (!response.ok) {
                     throw new Error(`Google Sheets merespons HTTP ${response.status}.`);
                 }
 
                 const records = parseSheetEvaluations(await response.text());
                 if (records.length === 0) {
-                    throw new Error('Tidak ada baris penilaian valid di Google Sheets.');
+                    throw new Error('Tidak ada nama agent yang valid di Google Sheets.');
                 }
                 sheetEvaluations = records;
-                status.textContent = `${records.length} data agent dimuat dari Google Sheets.`;
+                const recordsWithScores = records.filter((record) =>
+                    record.scores.every((score) => score !== null)
+                ).length;
+                status.textContent = `${records.length} agent dimuat untuk ${formatEvalPeriod(period)}; ${recordsWithScores} memiliki nilai P1–P6 lengkap.`;
                 status.className = 'text-xs text-emerald-700';
                 loadAgentSavedEvaluation();
             } catch (error) {
                 console.error('Gagal mengambil data P1–P6 dari Google Sheets.', error);
-                status.textContent = 'Google Sheets tidak dapat dimuat. Data tersimpan lokal akan digunakan jika tersedia.';
+                status.textContent = `Data ${formatEvalPeriod(period)} tidak dapat dimuat dari Google Sheets.`;
                 status.className = 'text-xs text-rose-700';
-                showToast('Gagal memuat data dari Google Sheets. Periksa koneksi dan izin akses sheet.', true);
-                loadAgentSavedEvaluation();
+                showToast(`Gagal memuat data ${formatEvalPeriod(period)} dari Google Sheets. Periksa koneksi dan izin akses.`, true);
+                clearKpiScores();
             } finally {
                 button.disabled = false;
                 button.classList.remove('opacity-60', 'cursor-wait');
@@ -808,13 +826,18 @@
                 normalizeAgentName(record.name) === normalizeAgentName(name)
             );
             if (sheetRecord) {
+                if (!sheetRecord.scores.every((score) => score !== null)) {
+                    clearKpiScores();
+                    showToast(`Nilai P1–P6 ${sheetRecord.name} untuk ${formatEvalPeriod(document.getElementById('evalPeriod').value)} belum lengkap di Google Sheets.`, true);
+                    return;
+                }
                 applyScores(sheetRecord.scores);
-                showToast(`Data ${sheetRecord.name} berhasil dimuat dari Google Sheets.`);
+                showToast(`Data ${sheetRecord.name} untuk ${formatEvalPeriod(document.getElementById('evalPeriod').value)} berhasil dimuat.`);
                 return;
             }
 
             clearKpiScores();
-            if (name) showToast(`Data ${name} tidak ditemukan di Google Sheets. Nilai KPI diatur ke 0.`);
+            if (name) showToast(`Data ${name} tidak ditemukan di Google Sheets untuk periode yang dipilih. Nilai KPI diatur ke 0.`);
         }
 
         function applyScores(scores) {
