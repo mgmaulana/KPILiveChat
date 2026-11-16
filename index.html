@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator KPI Customer Service</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Kalkulator KPI Live Chat</h1>
+            <p class="mt-2 text-sm text-slate-600">Evaluasi performa agen dengan skala maksimal 10 poin berdasarkan bobot indikator.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Form Input -->
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <h2 class="text-lg font-semibold text-slate-900">Input Nilai Indikator (0.0 - 10.0)</h2>
+                    <div class="space-x-2">
+                        <button onclick="isiContoh()" class="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer">Isi Contoh</button>
+                        <button onclick="resetForm()" class="text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer">Reset</button>
+                    </div>
+                </div>
+
+                <!-- P1 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-sm">
+                        <label class="font-medium text-slate-700">P1: Shift Volume <span class="text-xs text-slate-400 font-normal">(Bobot 15%)</span></label>
+                        <span id="val-p1" class="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">8.0</span>
+                    </div>
+                    <input type="range" id="p1" min="0" max="10" step="0.1" value="8.0" oninput="hitungKPI()" class="w-full accent-indigo-600 cursor-pointer">
+                    <p class="text-xs text-slate-500">Volume chat relatif terhadap rekan se-shift</p>
+                </div>
+
+                <!-- P2 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-sm">
+                        <label class="font-medium text-slate-700">P2: Time Management <span class="text-xs text-slate-400 font-normal">(Bobot 20%)</span></label>
+                        <span id="val-p2" class="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">8.5</span>
+                    </div>
+                    <input type="range" id="p2" min="0" max="10" step="0.1" value="8.5" oninput="hitungKPI()" class="w-full accent-indigo-600 cursor-pointer">
+                    <p class="text-xs text-slate-500">Kecepatan respon & minim pelanggaran SLA 2m</p>
+                </div>
+
+                <!-- P3 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-sm">
+                        <label class="font-medium text-slate-700">P3: Communication Skill <span class="text-xs text-slate-400 font-normal">(Bobot 15%)</span></label>
+                        <span id="val-p3" class="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">9.0</span>
+                    </div>
+                    <input type="range" id="p3" min="0" max="10" step="0.1" value="9.0" oninput="hitungKPI()" class="w-full accent-indigo-600 cursor-pointer">
+                    <p class="text-xs text-slate-500">Kepatuhan ejaan & minim salah ketik (typo)</p>
+                </div>
+
+                <!-- P4 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-sm">
+                        <label class="font-medium text-slate-700">P4: Miss Communication <span class="text-xs text-slate-400 font-normal">(Bobot 30%)</span></label>
+                        <span id="val-p4" class="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">7.5</span>
+                    </div>
+                    <input type="range" id="p4" min="0" max="10" step="0.1" value="7.5" oninput="hitungKPI()" class="w-full accent-indigo-600 cursor-pointer">
+                    <p class="text-xs text-slate-500">Akurasi pemahaman & minim salah balas</p>
+                </div>
+
+                <!-- P5 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-sm">
+                        <label class="font-medium text-slate-700">P5: Follow SOP <span class="text-xs text-slate-400 font-normal">(Bobot 10%)</span></label>
+                        <span id="val-p5" class="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">9.0</span>
+                    </div>
+                    <input type="range" id="p5" min="0" max="10" step="0.1" value="9.0" oninput="hitungKPI()" class="w-full accent-indigo-600 cursor-pointer">
+                    <p class="text-xs text-slate-500">Kepatuhan SOP kerja & rekam sanksi (BD, SP1, SP2)</p>
+                </div>
+
+                <!-- P6 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-sm">
+                        <label class="font-medium text-slate-700">P6: Attendance & Attitude <span class="text-xs text-slate-400 font-normal">(Bobot 10%)</span></label>
+                        <span id="val-p6" class="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">9.5</span>
+                    </div>
+                    <input type="range" id="p6" min="0" max="10" step="0.1" value="9.5" oninput="hitungKPI()" class="w-full accent-indigo-600 cursor-pointer">
+                    <p class="text-xs text-slate-500">Kehadiran kerja & pengurangan absen/izin/sakit</p>
+                </div>
+            </div>
+
+            <!-- Hasil & Ringkasan -->
+            <div class="space-y-6">
+                <div class="bg-indigo-900 text-white rounded-2xl shadow-sm p-6 text-center space-y-4">
+                    <h3 class="text-sm font-medium text-indigo-200 uppercase tracking-wider">Total Skor Akhir</h3>
+                    <div class="text-5xl font-extrabold tracking-tight" id="skor-akhir">0.00</div>
+                    <div id="badge-predikat" class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-indigo-800 text-indigo-100">
+                        Predikat: -
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+                    <h3 class="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-3">Kontribusi Poin (Maks 10)</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between"><span>P1 (15%):</span><span id="kontribusi-p1" class="font-semibold">0.00</span></div>
+                        <div class="flex justify-between"><span>P2 (20%):</span><span id="kontribusi-p2" class="font-semibold">0.00</span></div>
+                        <div class="flex justify-between"><span>P3 (15%):</span><span id="kontribusi-p3" class="font-semibold">0.00</span></div>
+                        <div class="flex justify-between"><span>P4 (30%):</span><span id="kontribusi-p4" class="font-semibold">0.00</span></div>
+                        <div class="flex justify-between"><span>P5 (10%):</span><span id="kontribusi-p5" class="font-semibold">0.00</span></div>
+                        <div class="flex justify-between"><span>P6 (10%):</span><span id="kontribusi-p6" class="font-semibold">0.00</span></div>
+                    </div>
+                    <button onclick="salinLaporan()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-xl text-sm transition-colors cursor-pointer shadow-sm">
+                        Salin Ringkasan Laporan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function hitungKPI() {
+            let p1 = parseFloat(document.getElementById('p1').value);
+            let p2 = parseFloat(document.getElementById('p2').value);
+            let p3 = parseFloat(document.getElementById('p3').value);
+            let p4 = parseFloat(document.getElementById('p4').value);
+            let p5 = parseFloat(document.getElementById('p5').value);
+            let p6 = parseFloat(document.getElementById('p6').value);
+
+            document.getElementById('val-p1').innerText = p1.toFixed(1);
+            document.getElementById('val-p2').innerText = p2.toFixed(1);
+            document.getElementById('val-p3').innerText = p3.toFixed(1);
+            document.getElementById('val-p4').innerText = p4.toFixed(1);
+            document.getElementById('val-p5').innerText = p5.toFixed(1);
+            document.getElementById('val-p6').innerText = p6.toFixed(1);
+
+            let k1 = p1 * 0.15;
+            let k2 = p2 * 0.20;
+            let k3 = p3 * 0.15;
+            let k4 = p4 * 0.30;
+            let k5 = p5 * 0.10;
+            let k6 = p6 * 0.10;
+
+            document.getElementById('kontribusi-p1').innerText = k1.toFixed(2);
+            document.getElementById('kontribusi-p2').innerText = k2.toFixed(2);
+            document.getElementById('kontribusi-p3').innerText = k3.toFixed(2);
+            document.getElementById('kontribusi-p4').innerText = k4.toFixed(2);
+            document.getElementById('kontribusi-p5').innerText = k5.toFixed(2);
+            document.getElementById('kontribusi-p6').innerText = k6.toFixed(2);
+
+            let totalSkor = k1 + k2 + k3 + k4 + k5 + k6;
+            document.getElementById('skor-akhir').innerText = totalSkor.toFixed(2);
+
+            let badge = document.getElementById('badge-predikat');
+            if (totalSkor >= 9.0) {
+                badge.innerText = "Predikat: Istimewa (A+)";
+                badge.className = "inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800";
+            } else if (totalSkor >= 8.0) {
+                badge.innerText = "Predikat: Sangat Baik (A)";
+                badge.className = "inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800";
+            } else if (totalSkor >= 7.0) {
+                badge.innerText = "Predikat: Baik (B)";
+                badge.className = "inline-block px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800";
+            } else {
+                badge.innerText = "Predikat: Perlu Evaluasi (C)";
+                badge.className = "inline-block px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800";
+            }
+        }
+
+        function isiContoh() {
+            document.getElementById('p1').value = 8.5;
+            document.getElementById('p2').value = 9.0;
+            document.getElementById('p3').value = 8.0;
+            document.getElementById('p4').value = 8.5;
+            document.getElementById('p5').value = 9.5;
+            document.getElementById('p6').value = 9.0;
+            hitungKPI();
+        }
+
+        function resetForm() {
+            document.getElementById('p1').value = 0;
+            document.getElementById('p2').value = 0;
+            document.getElementById('p3').value = 0;
+            document.getElementById('p4').value = 0;
+            document.getElementById('p5').value = 0;
+            document.getElementById('p6').value = 0;
+            hitungKPI();
+        }
+
+        function salinLaporan() {
+            let skor = document.getElementById('skor-akhir').innerText;
+            let teks = `📊 *REKAPITULASI PENILAIAN KPI CS*\n\n` +
+                       `• P1 (Shift Volume 15%): ${document.getElementById('kontribusi-p1').innerText}\n` +
+                       `• P2 (Time Management 20%): ${document.getElementById('kontribusi-p2').innerText}\n` +
+                       `• P3 (Communication 15%): ${document.getElementById('kontribusi-p3').innerText}\n` +
+                       `• P4 (Miss Communication 30%): ${document.getElementById('kontribusi-p4').innerText}\n` +
+                       `• P5 (Follow SOP 10%): ${document.getElementById('kontribusi-p5').innerText}\n` +
+                       `• P6 (Attendance 10%): ${document.getElementById('kontribusi-p6').innerText}\n\n` +
+                       `⭐ *TOTAL SKOR AKHIR: ${skor} / 10.00*`;
+            
+            navigator.clipboard.writeText(teks).then(() => {
+                alert('Ringkasan laporan berhasil disalin ke clipboard!');
+            });
+        }
+
+        window.onload = hitungKPI;
+    </script>
+</body>
+</html>
