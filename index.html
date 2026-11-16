@@ -146,7 +146,7 @@
                         </div>
                         <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">Opsional</span>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="agentName" class="block text-xs font-semibold text-slate-600 mb-1.5">Nama Agent / CS</label>
                             <select id="agentName" onchange="loadAgentSavedEvaluation()"
@@ -186,18 +186,8 @@
                             </select>
                         </div>
                         <div>
-                            <label for="agentShift" class="block text-xs font-semibold text-slate-600 mb-1.5">Shift / Tim</label>
-                            <select id="agentShift" onchange="updateReportPreview()"
-                                class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
-                                <option value="">Pilih shift...</option>
-                                <option>Shift Pagi</option>
-                                <option>Shift Siang</option>
-                                <option>Shift Malam</option>
-                            </select>
-                        </div>
-                        <div>
                             <label for="evalPeriod" class="block text-xs font-semibold text-slate-600 mb-1.5">Periode Penilaian</label>
-                            <input type="month" id="evalPeriod" onchange="updateReportPreview()"
+                            <input type="month" id="evalPeriod" onchange="loadAgentSavedEvaluation(true)"
                                 class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
                         </div>
                     </div>
@@ -659,7 +649,6 @@
          */
         function fillExampleData() {
             document.getElementById('agentName').value = 'Lutfi Wandi Wardana';
-            document.getElementById('agentShift').value = 'Shift Pagi';
             document.getElementById('evalPeriod').value = getCurrentMonthValue();
 
             const sampleScores = [8.5, 9.0, 8.8, 9.2, 9.5, 10.0];
@@ -678,7 +667,6 @@
          */
         function resetAll() {
             document.getElementById('agentName').value = '';
-            document.getElementById('agentShift').value = '';
             document.getElementById('evalPeriod').value = '';
 
             kpiConfig.forEach((item) => {
@@ -741,16 +729,15 @@
                 return;
             }
 
-            const shift = document.getElementById('agentShift').value.trim();
             const period = document.getElementById('evalPeriod').value;
             const existingIndex = savedEvaluations.findIndex((record) =>
-                record.name === name && record.shift === shift && record.period === period
+                normalizeAgentName(record.name) === normalizeAgentName(name) && record.period === period
             );
             const existingRecord = existingIndex >= 0 ? savedEvaluations[existingIndex] : null;
             const record = {
                 id: existingRecord ? existingRecord.id : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
                 name,
-                shift,
+                shift: '',
                 period,
                 scores: kpiConfig.map((item) => item.score),
                 savedAt: new Date().toISOString()
@@ -815,7 +802,7 @@
                             evaluationSummary.className = 'cursor-pointer list-none px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 text-sm hover:bg-slate-50';
                             const evaluationTitle = document.createElement('span');
                             evaluationTitle.className = 'font-medium text-slate-800';
-                            evaluationTitle.textContent = `${formatEvalPeriod(record.period)} • ${record.shift || 'Tanpa shift'}`;
+                            evaluationTitle.textContent = formatEvalPeriod(record.period);
                             const evaluationScore = document.createElement('span');
                             evaluationScore.className = 'font-bold text-indigo-600';
                             evaluationScore.textContent = `${calculateSavedTotal(record.scores).toFixed(2)} / 10.00`;
@@ -873,7 +860,6 @@
 
         function applySavedEvaluation(record) {
             document.getElementById('agentName').value = record.name;
-            document.getElementById('agentShift').value = record.shift;
             document.getElementById('evalPeriod').value = record.period;
             kpiConfig.forEach((item, index) => {
                 item.score = record.scores[index];
@@ -883,31 +869,47 @@
             calculateAndRenderResults();
         }
 
-        function loadAgentSavedEvaluation() {
+        function normalizeAgentName(name) {
+            return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID');
+        }
+
+        function clearKpiScores() {
+            kpiConfig.forEach((item) => {
+                item.score = 0;
+                document.getElementById(`slider-${item.id}`).value = 0;
+                document.getElementById(`input-${item.id}`).value = 0;
+            });
+            calculateAndRenderResults();
+        }
+
+        function loadAgentSavedEvaluation(requireExactMatch = false) {
+            savedEvaluations = loadSavedEvaluations();
+            renderSavedEvaluations();
+
             const name = document.getElementById('agentName').value.trim();
             const matchingRecords = savedEvaluations
-                .filter((record) => record.name === name)
+                .filter((record) => normalizeAgentName(record.name) === normalizeAgentName(name))
                 .sort((recordA, recordB) => recordB.savedAt.localeCompare(recordA.savedAt));
 
             if (matchingRecords.length === 0) {
-                kpiConfig.forEach((item) => {
-                    item.score = 0;
-                    document.getElementById(`slider-${item.id}`).value = 0;
-                    document.getElementById(`input-${item.id}`).value = 0;
-                });
-                calculateAndRenderResults();
+                clearKpiScores();
                 if (name) {
                     showToast(`Belum ada data tersimpan untuk ${name}. Nilai KPI diatur ke 0.`);
                 }
                 return;
             }
 
-            const selectedShift = document.getElementById('agentShift').value;
             const selectedPeriod = document.getElementById('evalPeriod').value;
-            const record = matchingRecords.find((item) =>
-                item.shift === selectedShift && item.period === selectedPeriod
-            ) || matchingRecords.find((item) => item.period === selectedPeriod) || matchingRecords[0];
+            const exactRecord = matchingRecords.find((item) => item.period === selectedPeriod);
+            const record = exactRecord || (requireExactMatch
+                ? null
+                : matchingRecords[0]);
 
+            if (!record) {
+                clearKpiScores();
+                showToast(`Belum ada penilaian ${name} untuk periode yang dipilih. Nilai KPI diatur ke 0.`);
+                return;
+            }
             applySavedEvaluation(record);
             showToast(`Data ${record.name} (${formatEvalPeriod(record.period)}) berhasil dimuat.`);
         }
@@ -948,7 +950,6 @@
          */
         function copyReportToClipboard() {
             const name = document.getElementById('agentName').value.trim() || '-';
-            const shift = document.getElementById('agentShift').value.trim() || '-';
             const period = formatEvalPeriod(document.getElementById('evalPeriod').value);
             const totalScore = document.getElementById('total-score-display').textContent;
             const grade = document.getElementById('badge-grade').textContent;
@@ -957,7 +958,6 @@
                 `*LAPORAN PENILAIAN KPI CUSTOMER SERVICE*`,
                 `----------------------------------------`,
                 `• Nama Agent : ${name}`,
-                `• Shift / Tim : ${shift}`,
                 `• Periode     : ${period}`,
                 `----------------------------------------`,
                 `*RINCIAN SKOR INDIKATOR:*`
