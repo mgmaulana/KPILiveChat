@@ -149,7 +149,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label for="agentName" class="block text-xs font-semibold text-slate-600 mb-1.5">Nama Agent / CS</label>
-                            <select id="agentName" onchange="updateReportPreview()"
+                            <select id="agentName" onchange="loadAgentSavedEvaluation()"
                                 class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
                                 <option value="">Pilih nama agent...</option>
                                 <option>Alpin Rahmadani</option>
@@ -866,6 +866,12 @@
                 return;
             }
 
+            applySavedEvaluation(record);
+            showToast(`Penilaian ${record.name} berhasil dimuat ke form.`);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function applySavedEvaluation(record) {
             document.getElementById('agentName').value = record.name;
             document.getElementById('agentShift').value = record.shift;
             document.getElementById('evalPeriod').value = record.period;
@@ -875,8 +881,35 @@
                 document.getElementById(`input-${item.id}`).value = item.score;
             });
             calculateAndRenderResults();
-            showToast(`Penilaian ${record.name} berhasil dimuat ke form.`);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function loadAgentSavedEvaluation() {
+            const name = document.getElementById('agentName').value.trim();
+            const matchingRecords = savedEvaluations
+                .filter((record) => record.name === name)
+                .sort((recordA, recordB) => recordB.savedAt.localeCompare(recordA.savedAt));
+
+            if (matchingRecords.length === 0) {
+                kpiConfig.forEach((item) => {
+                    item.score = 0;
+                    document.getElementById(`slider-${item.id}`).value = 0;
+                    document.getElementById(`input-${item.id}`).value = 0;
+                });
+                calculateAndRenderResults();
+                if (name) {
+                    showToast(`Belum ada data tersimpan untuk ${name}. Nilai KPI diatur ke 0.`);
+                }
+                return;
+            }
+
+            const selectedShift = document.getElementById('agentShift').value;
+            const selectedPeriod = document.getElementById('evalPeriod').value;
+            const record = matchingRecords.find((item) =>
+                item.shift === selectedShift && item.period === selectedPeriod
+            ) || matchingRecords.find((item) => item.period === selectedPeriod) || matchingRecords[0];
+
+            applySavedEvaluation(record);
+            showToast(`Data ${record.name} (${formatEvalPeriod(record.period)}) berhasil dimuat.`);
         }
 
         function deleteSavedEvaluation(recordId) {
