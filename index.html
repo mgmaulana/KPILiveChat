@@ -192,7 +192,7 @@
                         </div>
                         <div>
                             <label for="evalPeriod" class="block text-xs font-semibold text-slate-600 mb-1.5">Periode Penilaian</label>
-                            <input type="month" id="evalPeriod" onchange="loadAgentSavedEvaluation(true)"
+                            <input type="month" id="evalPeriod" onchange="loadAgentSavedEvaluation()"
                                 class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
                         </div>
                         <div class="sm:col-span-2 flex flex-wrap items-center justify-between gap-2">
@@ -330,22 +330,6 @@
             </div>
         </div>
 
-        <section class="mt-8 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                <div>
-                    <h2 class="text-base font-bold text-slate-900">Data Penilaian Tersimpan</h2>
-                    <p class="text-xs text-slate-500 mt-1">Data dikelompokkan berdasarkan nama agent dan bisa dibuka atau diminimalkan.</p>
-                </div>
-                <button onclick="saveCurrentEvaluation()" type="button"
-                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">
-                    <i data-lucide="save" class="w-4 h-4"></i>
-                    <span>Simpan Penilaian Ini</span>
-                </button>
-            </div>
-            <div id="saved-evaluations-list" class="space-y-3">
-                <p class="text-sm text-slate-500 py-3 text-center">Belum ada data penilaian tersimpan.</p>
-            </div>
-        </section>
     </main>
 
     <!-- Footer -->
@@ -429,12 +413,10 @@
 
         // Konstanta keliling lingkaran SVG untuk progress ring (2 * PI * 58)
         const RING_CIRCUMFERENCE = 2 * Math.PI * 58;
-        const SAVED_EVALUATIONS_KEY = 'kpi-live-chat-saved-evaluations-v1';
         const GOOGLE_SHEET_ID = '1-NvT0X7PCc-sX4vEtnlrDqh-YyhzZfV3Ou98KypXYMw';
         const GOOGLE_SHEET_GID = '0';
         const GOOGLE_SHEET_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/edit?gid=${GOOGLE_SHEET_GID}#gid=${GOOGLE_SHEET_GID}`;
         const GOOGLE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=csv&gid=${GOOGLE_SHEET_GID}`;
-        let savedEvaluations = [];
         let sheetEvaluations = [];
 
         /**
@@ -697,196 +679,6 @@
             showToast('Semua nilai berhasil di-reset ke 0.');
         }
 
-        function isValidSavedEvaluation(record) {
-            return record
-                && typeof record.id === 'string'
-                && typeof record.name === 'string'
-                && typeof record.shift === 'string'
-                && typeof record.period === 'string'
-                && Array.isArray(record.scores)
-                && record.scores.length === kpiConfig.length
-                && record.scores.every((score) => Number.isFinite(score) && score >= 0 && score <= 10)
-                && typeof record.savedAt === 'string';
-        }
-
-        function loadSavedEvaluations() {
-            try {
-                const stored = localStorage.getItem(SAVED_EVALUATIONS_KEY);
-                if (!stored) return [];
-
-                const records = JSON.parse(stored);
-                if (!Array.isArray(records) || !records.every(isValidSavedEvaluation)) {
-                    throw new Error('Format data penilaian tersimpan tidak valid.');
-                }
-                return records;
-            } catch (error) {
-                console.error('Gagal membaca data penilaian tersimpan.', error);
-                showToast('Data tersimpan gagal dibaca. Penyimpanan browser mungkin bermasalah.', true);
-                return [];
-            }
-        }
-
-        function persistSavedEvaluations(records) {
-            try {
-                localStorage.setItem(SAVED_EVALUATIONS_KEY, JSON.stringify(records));
-                savedEvaluations = records;
-                renderSavedEvaluations();
-                return true;
-            } catch (error) {
-                console.error('Gagal menyimpan data penilaian.', error);
-                showToast('Data gagal disimpan. Periksa ruang penyimpanan browser.', true);
-                return false;
-            }
-        }
-
-        function saveCurrentEvaluation() {
-            const name = document.getElementById('agentName').value.trim();
-            if (!name) {
-                showToast('Pilih nama agent sebelum menyimpan penilaian.', true);
-                document.getElementById('agentName').focus();
-                return;
-            }
-
-            const period = document.getElementById('evalPeriod').value;
-            const existingIndex = savedEvaluations.findIndex((record) =>
-                normalizeAgentName(record.name) === normalizeAgentName(name) && record.period === period
-            );
-            const existingRecord = existingIndex >= 0 ? savedEvaluations[existingIndex] : null;
-            const record = {
-                id: existingRecord ? existingRecord.id : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-                name,
-                shift: '',
-                period,
-                scores: kpiConfig.map((item) => item.score),
-                savedAt: new Date().toISOString()
-            };
-            const nextRecords = [...savedEvaluations];
-
-            if (existingIndex >= 0) {
-                nextRecords[existingIndex] = record;
-            } else {
-                nextRecords.push(record);
-            }
-
-            if (persistSavedEvaluations(nextRecords)) {
-                showToast(existingRecord ? 'Data penilaian untuk nama dan periode ini diperbarui.' : 'Data penilaian berhasil disimpan.');
-            }
-        }
-
-        function renderSavedEvaluations() {
-            const container = document.getElementById('saved-evaluations-list');
-            container.replaceChildren();
-
-            if (savedEvaluations.length === 0) {
-                const emptyMessage = document.createElement('p');
-                emptyMessage.className = 'text-sm text-slate-500 py-3 text-center';
-                emptyMessage.textContent = 'Belum ada data penilaian tersimpan.';
-                container.appendChild(emptyMessage);
-                return;
-            }
-
-            const groupedRecords = savedEvaluations.reduce((groups, record) => {
-                if (!groups.has(record.name)) groups.set(record.name, []);
-                groups.get(record.name).push(record);
-                return groups;
-            }, new Map());
-
-            [...groupedRecords.entries()]
-                .sort(([nameA], [nameB]) => nameA.localeCompare(nameB, 'id'))
-                .forEach(([name, records]) => {
-                    const agentDetails = document.createElement('details');
-                    agentDetails.className = 'rounded-xl border border-slate-200 bg-slate-50 overflow-hidden';
-
-                    const agentSummary = document.createElement('summary');
-                    agentSummary.className = 'cursor-pointer list-none px-4 py-3 flex items-center justify-between gap-3 font-semibold text-sm text-slate-800 hover:bg-slate-100';
-                    const agentName = document.createElement('span');
-                    agentName.textContent = name;
-                    const recordCount = document.createElement('span');
-                    recordCount.className = 'text-xs font-medium text-slate-500';
-                    recordCount.textContent = `${records.length} penilaian`;
-                    agentSummary.append(agentName, recordCount);
-                    agentDetails.appendChild(agentSummary);
-
-                    const recordsContainer = document.createElement('div');
-                    recordsContainer.className = 'p-3 space-y-2 border-t border-slate-200 bg-white';
-
-                    [...records]
-                        .sort((recordA, recordB) => recordB.savedAt.localeCompare(recordA.savedAt))
-                        .forEach((record) => {
-                            const evaluationDetails = document.createElement('details');
-                            evaluationDetails.className = 'rounded-lg border border-slate-200 overflow-hidden';
-
-                            const evaluationSummary = document.createElement('summary');
-                            evaluationSummary.className = 'cursor-pointer list-none px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 text-sm hover:bg-slate-50';
-                            const evaluationTitle = document.createElement('span');
-                            evaluationTitle.className = 'font-medium text-slate-800';
-                            evaluationTitle.textContent = formatEvalPeriod(record.period);
-                            const evaluationScore = document.createElement('span');
-                            evaluationScore.className = 'font-bold text-indigo-600';
-                            evaluationScore.textContent = `${calculateSavedTotal(record.scores).toFixed(2)} / 10.00`;
-                            evaluationSummary.append(evaluationTitle, evaluationScore);
-                            evaluationDetails.appendChild(evaluationSummary);
-
-                            const evaluationBody = document.createElement('div');
-                            evaluationBody.className = 'px-3 pb-3 pt-1 border-t border-slate-100';
-                            const scoreList = document.createElement('p');
-                            scoreList.className = 'text-xs leading-6 text-slate-600';
-                            scoreList.textContent = kpiConfig
-                                .map((item, index) => `${item.code} ${item.title}: ${record.scores[index].toFixed(1)}`)
-                                .join(' • ');
-
-                            const actions = document.createElement('div');
-                            actions.className = 'flex flex-wrap gap-2 mt-2';
-                            const loadButton = document.createElement('button');
-                            loadButton.type = 'button';
-                            loadButton.className = 'px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg';
-                            loadButton.textContent = 'Muat ke form';
-                            loadButton.addEventListener('click', () => loadSavedEvaluation(record.id));
-
-                            const deleteButton = document.createElement('button');
-                            deleteButton.type = 'button';
-                            deleteButton.className = 'px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg';
-                            deleteButton.textContent = 'Hapus';
-                            deleteButton.addEventListener('click', () => deleteSavedEvaluation(record.id));
-
-                            actions.append(loadButton, deleteButton);
-                            evaluationBody.append(scoreList, actions);
-                            evaluationDetails.appendChild(evaluationBody);
-                            recordsContainer.appendChild(evaluationDetails);
-                        });
-
-                    agentDetails.appendChild(recordsContainer);
-                    container.appendChild(agentDetails);
-                });
-        }
-
-        function calculateSavedTotal(scores) {
-            return scores.reduce((total, score, index) => total + score * (kpiConfig[index].weight / 100), 0);
-        }
-
-        function loadSavedEvaluation(recordId) {
-            const record = savedEvaluations.find((item) => item.id === recordId);
-            if (!record) {
-                showToast('Data penilaian tidak ditemukan.', true);
-                return;
-            }
-
-            applySavedEvaluation(record);
-            showToast(`Penilaian ${record.name} berhasil dimuat ke form.`);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function applySavedEvaluation(record) {
-            document.getElementById('agentName').value = record.name;
-            document.getElementById('evalPeriod').value = record.period;
-            kpiConfig.forEach((item, index) => {
-                item.score = record.scores[index];
-                document.getElementById(`slider-${item.id}`).value = item.score;
-                document.getElementById(`input-${item.id}`).value = item.score;
-            });
-            calculateAndRenderResults();
-        }
-
         function normalizeAgentName(name) {
             return name
                 .replace(/\([^)]*\)/g, ' ')
@@ -1010,10 +802,7 @@
             calculateAndRenderResults();
         }
 
-        function loadAgentSavedEvaluation(requireExactMatch = false) {
-            savedEvaluations = loadSavedEvaluations();
-            renderSavedEvaluations();
-
+        function loadAgentSavedEvaluation() {
             const name = document.getElementById('agentName').value.trim();
             const sheetRecord = sheetEvaluations.find((record) =>
                 normalizeAgentName(record.name) === normalizeAgentName(name)
@@ -1024,33 +813,8 @@
                 return;
             }
 
-            const matchingRecords = savedEvaluations
-                .filter((record) => normalizeAgentName(record.name) === normalizeAgentName(name))
-                .sort((recordA, recordB) => recordB.savedAt.localeCompare(recordA.savedAt));
-
-            if (matchingRecords.length === 0) {
-                clearKpiScores();
-                if (name) {
-                    showToast(`Belum ada data tersimpan untuk ${name}. Nilai KPI diatur ke 0.`);
-                }
-                return;
-            }
-
-            const selectedPeriod = document.getElementById('evalPeriod').value;
-            const exactRecord = matchingRecords.find((item) => item.period === selectedPeriod);
-            const record = exactRecord || (requireExactMatch
-                ? null
-                : matchingRecords[0]);
-
-            if (!record) {
-                clearKpiScores();
-                if (name) {
-                    showToast(`Data ${name} tidak ditemukan di Google Sheets atau penyimpanan lokal.`);
-                }
-                return;
-            }
-            applySavedEvaluation(record);
-            showToast(`Data ${record.name} (${formatEvalPeriod(record.period)}) berhasil dimuat.`);
+            clearKpiScores();
+            if (name) showToast(`Data ${name} tidak ditemukan di Google Sheets. Nilai KPI diatur ke 0.`);
         }
 
         function applyScores(scores) {
@@ -1060,20 +824,6 @@
                 document.getElementById(`input-${item.id}`).value = item.score;
             });
             calculateAndRenderResults();
-        }
-
-        function deleteSavedEvaluation(recordId) {
-            const record = savedEvaluations.find((item) => item.id === recordId);
-            if (!record) {
-                showToast('Data penilaian tidak ditemukan.', true);
-                return;
-            }
-            if (!window.confirm(`Hapus penilaian ${record.name} untuk periode ${formatEvalPeriod(record.period)}?`)) return;
-
-            const nextRecords = savedEvaluations.filter((item) => item.id !== recordId);
-            if (persistSavedEvaluations(nextRecords)) {
-                showToast('Data penilaian berhasil dihapus.');
-            }
         }
 
         function updateReportPreview() {
@@ -1171,11 +921,14 @@
 
         // Inisialisasi aplikasi saat halaman dimuat
         window.addEventListener('DOMContentLoaded', () => {
+            try {
+                localStorage.removeItem('kpi-live-chat-saved-evaluations-v1');
+            } catch (error) {
+                console.error('Gagal menghapus data penilaian lokal yang sudah tidak digunakan.', error);
+            }
             document.getElementById('evalPeriod').value = getCurrentMonthValue();
             renderKpiCards();
             calculateAndRenderResults();
-            savedEvaluations = loadSavedEvaluations();
-            renderSavedEvaluations();
             lucide.createIcons();
             refreshSheetData();
         });
