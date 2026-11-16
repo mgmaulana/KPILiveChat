@@ -152,37 +152,42 @@
                             <select id="agentName" onchange="loadAgentSavedEvaluation()"
                                 class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
                                 <option value="">Pilih nama agent...</option>
-                                <option>Alpin Rahmadani</option>
-                                <option>Andri Agustian</option>
-                                <option>Ari Setiyawan</option>
-                                <option>Ayu Andini</option>
-                                <option>Daniel Cahyadi Herawan</option>
-                                <option>Ferry Hermawan</option>
-                                <option>IFTIKHAR HILMY</option>
-                                <option>Indah Listiani</option>
-                                <option>Ira Vitaloka</option>
-                                <option>Irene Naftally Nathaniela Sitorus</option>
-                                <option>Irfani Putri</option>
-                                <option>Jonathan Prawira</option>
-                                <option>Jovander Prawira</option>
-                                <option>Khoiril Mukharomah</option>
-                                <option>Kusuma Wijaya</option>
-                                <option>Lutfi Wandi Wardana</option>
-                                <option>M.S Donny Sanjaya</option>
-                                <option>M Saripudin</option>
-                                <option>Mohamad Arya Ardiansyah</option>
-                                <option>Mohammad Amjad Amrullah</option>
-                                <option>Muhamad Gilang Maulana</option>
-                                <option>Muhammad Rizal</option>
-                                <option>Namiando Purba</option>
-                                <option>Putriana Kasau</option>
-                                <option>Rahmad Saputra</option>
-                                <option>Reza Ramadhan</option>
-                                <option>Rusdi Firdaus Syah</option>
-                                <option>Ruth Angellia Jahja</option>
-                                <option>Scaniawan Giraldi</option>
-                                <option>Sunandar</option>
-                                <option>Vicky Novendra</option>
+                                <option>Alpin Rahmadani (Gisell)</option>
+                                <option>Andri Agustian (Dewi)</option>
+                                <option>Ari Setiyawan (Venna)</option>
+                                <option>Ayu Andini (Zee)</option>
+                                <option>Daniel Cahyadi Herawan (lidya)</option>
+                                <option>ELVIRA MONICA (ELISA)</option>
+                                <option>Ferry Hermawan (Verra)</option>
+                                <option>IFTIKHAR HILMY (Ratu)</option>
+                                <option>Ika Agustina Pratiwi (ICHA)</option>
+                                <option>Indah Listiani (Pevita)</option>
+                                <option>Ira Vitaloka (jessica)</option>
+                                <option>Irene Naftally Nathaniela Sitorus (Luciana)</option>
+                                <option>Irfani Putri (EMI)</option>
+                                <option>Jonathan Prawira (Kezia Putri)</option>
+                                <option>Jovander Prawira (Rita)</option>
+                                <option>Khoiril Mukharomah (Alexa)</option>
+                                <option>Kusuma Wijaya (Amanda Wijaya)</option>
+                                <option>Lutfi Wandi Wardana (Amel)</option>
+                                <option>M Saripudin (Juliana)</option>
+                                <option>M.S Donny Sanjaya (Adelia Sandra)</option>
+                                <option>Mohamad Arya Ardiansyah (Angel)</option>
+                                <option>Mohammad Amjad Amrullah (Naomi Armster)</option>
+                                <option>Muhamad Gilang Maulana (Riuka Nami)</option>
+                                <option>Muhammad Rizal (Kayli)</option>
+                                <option>Namiando Purba (Vinanda Giovani)</option>
+                                <option>Niken Natasya Aryanti Putri (Bianca)</option>
+                                <option>Putriana Kasau (Fayyana)</option>
+                                <option>Rahmad Saputra (Adira)</option>
+                                <option>Reza Ramadhan (Shella)</option>
+                                <option>Rusdi Firdaus Syah (chika)</option>
+                                <option>Ruth Angellia Jahja (Leena)</option>
+                                <option>Scaniawan Giraldi (Ashley)</option>
+                                <option>Shelly Li Suni (JENIFFER)</option>
+                                <option>Sunandar (Imel)</option>
+                                <option>TESTER STAFF</option>
+                                <option>Vicky Novendra (Olivia)</option>
                             </select>
                         </div>
                         <div>
@@ -425,7 +430,10 @@
         // Konstanta keliling lingkaran SVG untuk progress ring (2 * PI * 58)
         const RING_CIRCUMFERENCE = 2 * Math.PI * 58;
         const SAVED_EVALUATIONS_KEY = 'kpi-live-chat-saved-evaluations-v1';
-        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1-NvT0X7PCc-sX4vEtnlrDqh-YyhzZfV3Ou98KypXYMw/export?format=csv&gid=0';
+        const GOOGLE_SHEET_ID = '1-NvT0X7PCc-sX4vEtnlrDqh-YyhzZfV3Ou98KypXYMw';
+        const GOOGLE_SHEET_GID = '0';
+        const GOOGLE_SHEET_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/edit?gid=${GOOGLE_SHEET_GID}#gid=${GOOGLE_SHEET_GID}`;
+        const GOOGLE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=csv&gid=${GOOGLE_SHEET_GID}`;
         let savedEvaluations = [];
         let sheetEvaluations = [];
 
@@ -929,17 +937,23 @@
         function parseSheetEvaluations(csvText) {
             const rows = parseCsv(csvText);
             const headerIndex = rows.findIndex((row) =>
-                row.some((cell) => cell.trim().toLocaleLowerCase('id-ID') === 'nama')
+                kpiConfig.every((item) =>
+                    row.some((cell) => cell.trim().toLocaleLowerCase('id-ID') === item.code.toLocaleLowerCase('id-ID'))
+                )
             );
             if (headerIndex < 0) {
-                throw new Error('Kolom Nama tidak ditemukan di Google Sheets.');
+                throw new Error('Header kolom P1 sampai P6 tidak ditemukan di Google Sheets.');
             }
 
             const headers = rows[headerIndex].map((cell) => cell.trim().toLocaleLowerCase('id-ID'));
-            const nameIndex = headers.indexOf('nama');
             const scoreIndexes = kpiConfig.map((item) => headers.indexOf(item.code.toLocaleLowerCase('id-ID')));
             if (scoreIndexes.some((index) => index < 0)) {
                 throw new Error('Kolom P1 sampai P6 harus tersedia di Google Sheets.');
+            }
+            const nameHeaderIndex = headers.findIndex((header) => header === 'nama' || header === 'name');
+            const nameIndex = nameHeaderIndex >= 0 ? nameHeaderIndex : Math.min(...scoreIndexes) - 1;
+            if (nameIndex < 0) {
+                throw new Error('Kolom nama agent tidak ditemukan sebelum kolom P1.');
             }
 
             return rows.slice(headerIndex + 1)
