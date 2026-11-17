@@ -693,7 +693,7 @@
          */
         function resetAll() {
             document.getElementById('agentName').value = '';
-            document.getElementById('evalYear').value = '';
+            document.getElementById('evalYear').value = '2026';
             updateEvaluationMonths();
             sheetEvaluations = [];
             const status = document.getElementById('sheet-sync-status');
@@ -1027,7 +1027,7 @@
             } catch (error) {
                 console.error('Gagal menghapus data penilaian lokal yang sudah tidak digunakan.', error);
             }
-            document.getElementById('evalYear').value = '';
+            document.getElementById('evalYear').value = '2026';
             updateEvaluationMonths();
             renderKpiCards();
             calculateAndRenderResults();
